@@ -58,11 +58,8 @@ function makeBlock(type: BlockType): Block {
 }
 
 export default function Home() {
-  const [formTitle, setFormTitle] = useState("");
-  const [showBlockEditor, setShowBlockEditor] = useState(false);
   const [blocks, setBlocks] = useState<Block[]>([{ id: "block-1", type: "paragraph", label: "" }]);
   const [menu, setMenu] = useState<MenuState | null>(null);
-  const [menuQuery, setMenuQuery] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -87,13 +84,11 @@ export default function Home() {
         return;
       }
       setMenu(null);
-      setMenuQuery("");
     };
 
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMenu(null);
-        setMenuQuery("");
       }
     };
 
@@ -131,7 +126,6 @@ export default function Home() {
     event.preventDefault();
     const rect = event.currentTarget.getBoundingClientRect();
     setMenu({ blockId, x: rect.left + window.scrollX, y: rect.bottom + window.scrollY + 8 });
-    setMenuQuery("");
   };
 
   const applyMenuItem = (type: BlockType) => {
@@ -143,20 +137,12 @@ export default function Home() {
       return { ...next, id: block.id };
     });
     setMenu(null);
-    setMenuQuery("");
     focusBlockIdRef.current = menu.blockId;
   };
 
   const onBlockKeyDown = (event: React.KeyboardEvent<HTMLElement>, block: Block, index: number) => {
     if (event.key === "/") {
       openSlashMenu(event, block.id);
-      return;
-    }
-    if (menu && event.key.length === 1 && /[a-zA-Z ]/.test(event.key)) {
-      setMenuQuery((current) => (current + event.key).trimStart());
-    }
-    if (menu && event.key === "Backspace") {
-      setMenuQuery((current) => current.slice(0, -1));
       return;
     }
     if (event.key === "Enter") {
@@ -174,49 +160,10 @@ export default function Home() {
   };
 
   const orderedBlocks = useMemo(() => blocks, [blocks]);
-  const filteredMenuItems = useMemo(() => {
-    if (!menuQuery.trim()) {
-      return MENU_ITEMS;
-    }
-    const q = menuQuery.toLowerCase();
-    return MENU_ITEMS.filter((item) => item.label.toLowerCase().includes(q));
-  }, [menuQuery]);
 
   return (
     <main className="builder-canvas">
-      <section className="title-shell" aria-label="Form title section">
-        <h1
-          role="textbox"
-          contentEditable
-          suppressContentEditableWarning
-          className="title-input"
-          data-empty={formTitle.trim() ? "false" : "true"}
-          onInput={(event) => setFormTitle(event.currentTarget.textContent || "")}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              setShowBlockEditor(true);
-              focusBlockIdRef.current = blocks[0]?.id ?? null;
-            }
-          }}
-        />
-      </section>
-
-      <section className="empty-state" style={{ display: showBlockEditor ? "none" : "block" }} aria-label="Empty state">
-        <button
-          type="button"
-          className="start-option"
-          onClick={() => {
-            setShowBlockEditor(true);
-            focusBlockIdRef.current = blocks[0]?.id ?? null;
-          }}
-        >
-          <span aria-hidden="true">📄</span>
-          <span>Press Enter to start from scratch</span>
-        </button>
-      </section>
-
-      <section className="block-editor" aria-label="Form block editor" style={{ display: showBlockEditor ? "block" : "none" }}>
+      <section className="block-editor" aria-label="Form block editor">
         {orderedBlocks.map((block, index) => (
           <div key={block.id}>
             {dropIndex === index ? <div className="drop-indicator" /> : null}
@@ -248,12 +195,12 @@ export default function Home() {
               }}
             >
               <div className="block-tools" aria-hidden="true">
-                  <button type="button" onClick={() => removeBlock(index)} title="Delete block" aria-label="Delete block">
-                    🗑
-                  </button>
-                  <button type="button" onClick={() => insertParagraphBelow(index)} title="Add block below" aria-label="Add block below">
-                    ＋
-                  </button>
+                <button type="button" onClick={() => removeBlock(index)} title="Delete block">
+                  🗑
+                </button>
+                <button type="button" onClick={() => insertParagraphBelow(index)} title="Add block below">
+                  ＋
+                </button>
                 <button
                   type="button"
                   title="Drag block"
@@ -263,10 +210,9 @@ export default function Home() {
                     setDraggedId(null);
                     setDropIndex(null);
                   }}
-                    aria-label="Drag block"
-                  >
-                    ⠿
-                  </button>
+                >
+                  ⠿
+                </button>
                 <span>/</span>
               </div>
 
@@ -394,18 +340,9 @@ export default function Home() {
       {menu ? (
         <div ref={menuRef} className="slash-menu" style={{ left: menu.x, top: menu.y }}>
           <p className="slash-title">Questions</p>
-          <p className="slash-query" aria-live="polite">{menuQuery ? `Filter: ${menuQuery}` : "Type to filter"}</p>
-          {filteredMenuItems.map((item) => (
+          {MENU_ITEMS.map((item) => (
             <button key={item.type} type="button" className="slash-item" onClick={() => applyMenuItem(item.type)}>
-              <span aria-hidden="true">
-                {item.type === "multiple_choice"
-                  ? "◎"
-                  : item.type === "dropdown"
-                    ? "⌄"
-                    : item.type === "phone"
-                      ? "☎"
-                      : item.icon}
-              </span>
+              <span aria-hidden="true">{item.icon}</span>
               <span>{item.label}</span>
             </button>
           ))}
